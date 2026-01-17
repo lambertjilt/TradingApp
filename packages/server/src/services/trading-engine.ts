@@ -1,5 +1,29 @@
 import { ZerodhaClient } from './zerodha-client';
-import { AutomaticTrade, TradingSignal } from '@trading-app/shared';
+
+export interface AutomaticTrade {
+  id: string;
+  symbol: string;
+  action: 'BUY' | 'SELL';
+  entryPrice: number;
+  targetPrice: number;
+  stoplossPrice: number;
+  quantity: number;
+  entryOrderId?: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  profit?: number;
+  profitPercent?: number;
+}
+
+export interface TradingSignal {
+  symbol: string;
+  action: 'BUY' | 'SELL';
+  entry: number;
+  target: number;
+  stoploss: number;
+  quantity: number;
+}
 
 export class SignalDetectionService {
   /**
@@ -168,14 +192,14 @@ export class TradingEngineService {
       }
 
       // Place bracket order
-      const orderResponse = await this.zerodhaClient.placeBracketOrder(
-        signal.symbol,
-        signal.action,
-        signal.quantity,
-        signal.entry,
-        signal.target,
-        signal.stoploss
-      );
+      const orderResponse = await this.zerodhaClient.placeBracketOrder({
+        symbol: signal.symbol,
+        quantity: signal.quantity,
+        side: signal.action,
+        price: signal.entry,
+        target: signal.target,
+        stoploss: signal.stoploss,
+      });
 
       // Create trade record
       const trade: AutomaticTrade = {
@@ -210,7 +234,7 @@ export class TradingEngineService {
 
       for (const [tradeId, trade] of this.activeTrades) {
         const matchingOrder = orders.find(
-          o => o.order_id === trade.entryOrderId
+          (o: any) => o.order_id === trade.entryOrderId
         );
 
         if (matchingOrder) {
@@ -219,7 +243,7 @@ export class TradingEngineService {
             trade.updatedAt = new Date();
 
             // Calculate actual profit/loss if trade is closed
-            const closingTrade = trades.find(t => t.order_id === trade.entryOrderId);
+            const closingTrade = trades.find((t: any) => t.order_id === trade.entryOrderId);
             if (closingTrade) {
               trade.profit = (closingTrade.price - trade.entryPrice) * trade.quantity;
               trade.profitPercent = ((closingTrade.price - trade.entryPrice) / trade.entryPrice) * 100;

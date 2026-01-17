@@ -3,6 +3,8 @@ import cors from 'cors';
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 import dotenv from 'dotenv';
+import tradingRoutes from './routes/trading';
+import zerodhaAuthRoutes from './routes/zerodha-auth';
 
 dotenv.config();
 
@@ -45,7 +47,8 @@ io.on('connection', (socket: Socket) => {
 });
 
 // API Routes
-// app.use('/api/trading', tradingRoutes);
+app.use('/api/trading', tradingRoutes);
+app.use('/api/zerodha', zerodhaAuthRoutes);
 
 // Health check endpoint
 app.get('/api/health', ((req: Request, res: Response) => {

@@ -143,25 +143,27 @@ export class ZerodhaClient {
   /**
    * Place a bracket order (entry + stoploss + target)
    */
-  async placeBracketOrder(
-    tradingsymbol: string,
-    transactionType: 'BUY' | 'SELL',
-    quantity: number,
-    entryPrice: number,
-    targetPrice: number,
-    stoplossPrice: number
-  ) {
+  async placeBracketOrder(orderConfig: {
+    symbol: string;
+    quantity: number;
+    side: 'BUY' | 'SELL';
+    price: number;
+    target: number;
+    stoploss: number;
+  }) {
     try {
+      const { symbol, quantity, side, price, target, stoploss } = orderConfig;
+      
       const response = await this.client.post('/orders/bracket', {
-        tradingsymbol,
+        tradingsymbol: symbol,
         exchange: 'NSE',
-        transaction_type: transactionType,
+        transaction_type: side,
         quantity,
-        price: entryPrice,
+        price,
         order_type: 'LIMIT',
         product: 'MIS',
-        squareoff: Math.abs(targetPrice - entryPrice),
-        stoploss: Math.abs(entryPrice - stoplossPrice),
+        squareoff: Math.abs(target - price),
+        stoploss: Math.abs(price - stoploss),
         trailing_stoploss: 0,
         validity: 'DAY',
       });

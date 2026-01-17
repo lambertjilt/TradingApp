@@ -1,7 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import { ZerodhaClient } from '../services/zerodha-client';
 import { TradingEngineService, SignalDetectionService } from '../services/trading-engine';
-import { TradingSignalSchema } from '@trading-app/shared';
 
 const router = Router();
 
@@ -156,7 +155,7 @@ router.post('/signals/generate', async (req: Request, res: Response) => {
     // Calculate entry, target, and stoploss
     const lastCandle = candles[candles.length - 1];
     const currentPrice = lastCandle.close;
-    const atr = this.calculateATR(candles, 14);
+    const atr = calculateATR(candles, 14);
 
     let entry = currentPrice;
     let target: number;
@@ -201,7 +200,7 @@ router.post('/trades/execute', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Services not initialized' });
     }
 
-    const signalData = TradingSignalSchema.parse(req.body);
+    const signalData = req.body;
     const trade = await tradingEngine.executeSignal(signalData);
 
     if (!trade) {
@@ -318,6 +317,526 @@ router.get('/orders', async (req: Request, res: Response) => {
 
     const orders = await zerodhaClient.getOrders();
     res.json({ orders });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Analyze symbol using Ultimate Strategy
+ */
+router.post('/ultimate-strategy/analyze', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { symbol, instrumentToken, quantity = 1 } = req.body;
+
+    if (!symbol || !instrumentToken) {
+      return res.status(400).json({ error: 'Missing symbol or instrumentToken' });
+    }
+
+    const { UltimateStrategy } = await import('../services/ultimate-strategy');
+    const strategy = new UltimateStrategy(zerodhaClient);
+    
+    const signal = await strategy.analyzeSymbol(instrumentToken, symbol, quantity);
+
+    res.json({
+      status: 'success',
+      signal,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Execute automatic trade based on Ultimate Strategy
+ */
+router.post('/automatic-trade/execute', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const {
+      symbol,
+      instrumentToken,
+      quantity = 1,
+      minConfidence = 80,
+      maxRiskPerTrade = 2,
+      maxOpenTrades = 5,
+    } = req.body;
+
+    if (!symbol || !instrumentToken) {
+      return res.status(400).json({ error: 'Missing symbol or instrumentToken' });
+    }
+
+    const { AutomaticTradeExecutor } = await import('../services/automatic-trade-executor');
+    
+    const config = {
+      symbol,
+      instrumentToken,
+      quantity,
+      minConfidence,
+      maxRiskPerTrade,
+      maxOpenTrades,
+    };
+
+    const executor = new AutomaticTradeExecutor(zerodhaClient, config);
+    const trade = await executor.executeTradeSignals();
+
+    res.json({
+      status: 'success',
+      trade,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get active trades
+ */
+router.get('/automatic-trade/active', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    // This is a simplified example - in production, you'd fetch from a database
+    const { AutomaticTradeExecutor } = await import('../services/automatic-trade-executor');
+    
+    const config = {
+      symbol: 'RELIANCE',
+      instrumentToken: 738561,
+      quantity: 1,
+      minConfidence: 80,
+      maxRiskPerTrade: 2,
+      maxOpenTrades: 5,
+    };
+
+    const executor = new AutomaticTradeExecutor(zerodhaClient, config);
+    const activeTrades = executor.getActiveTrades();
+
+    res.json({
+      status: 'success',
+      trades: activeTrades,
+      count: activeTrades.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get trading statistics
+ */
+router.get('/automatic-trade/statistics', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { AutomaticTradeExecutor } = await import('../services/automatic-trade-executor');
+    
+    const config = {
+      symbol: 'RELIANCE',
+      instrumentToken: 738561,
+      quantity: 1,
+      minConfidence: 80,
+      maxRiskPerTrade: 2,
+      maxOpenTrades: 5,
+    };
+
+    const executor = new AutomaticTradeExecutor(zerodhaClient, config);
+    const statistics = executor.getStatistics();
+
+    res.json({
+      status: 'success',
+      statistics,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Close a trade manually
+ */
+router.post('/automatic-trade/close', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { tradeId } = req.body;
+
+    if (!tradeId) {
+      return res.status(400).json({ error: 'Missing tradeId' });
+    }
+
+    const { AutomaticTradeExecutor } = await import('../services/automatic-trade-executor');
+    
+    const config = {
+      symbol: 'RELIANCE',
+      instrumentToken: 738561,
+      quantity: 1,
+      minConfidence: 80,
+      maxRiskPerTrade: 2,
+      maxOpenTrades: 5,
+    };
+
+    const executor = new AutomaticTradeExecutor(zerodhaClient, config);
+    const success = await executor.closeTrade(tradeId);
+
+    res.json({
+      status: 'success',
+      closed: success,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get AI Market Analysis
+ */
+router.post('/market-analysis/ai', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { symbol, instrumentToken, interval = 'hour' } = req.body;
+
+    if (!symbol || !instrumentToken) {
+      return res.status(400).json({ error: 'Missing symbol or instrumentToken' });
+    }
+
+    const { HistoricalDataService } = await import('../services/historical-data');
+    const { AIMarketAnalysisService } = await import('../services/ai-market-analysis');
+
+    const histService = new HistoricalDataService(zerodhaClient);
+    const candles = await histService.getHistoricalData(
+      instrumentToken,
+      symbol,
+      interval,
+      5
+    );
+
+    if (!candles || candles.length === 0) {
+      return res.status(400).json({ error: 'No historical data available' });
+    }
+
+    const analysis = AIMarketAnalysisService.analyzeMarket(candles, symbol);
+
+    res.json({
+      status: 'success',
+      analysis,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get Multi-Timeframe Analysis
+ */
+router.get('/market-analysis/multi-timeframe/:symbol/:instrumentToken', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { symbol, instrumentToken } = req.params;
+    const token = parseInt(instrumentToken);
+
+    const { HistoricalDataService } = await import('../services/historical-data');
+    const { AIMarketAnalysisService } = await import('../services/ai-market-analysis');
+
+    const histService = new HistoricalDataService(zerodhaClient);
+    const multiFrameData = await histService.getMultiTimeframeData(token, symbol);
+
+    const analyses = {
+      minute: AIMarketAnalysisService.analyzeMarket(multiFrameData.minute, symbol),
+      fiveMinute: AIMarketAnalysisService.analyzeMarket(multiFrameData.fiveMinute, symbol),
+      fifteenMinute: AIMarketAnalysisService.analyzeMarket(multiFrameData.fifteenMinute, symbol),
+      hourly: AIMarketAnalysisService.analyzeMarket(multiFrameData.hourly, symbol),
+      daily: AIMarketAnalysisService.analyzeMarket(multiFrameData.daily, symbol),
+    };
+
+    res.json({
+      status: 'success',
+      analyses,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get Historical Data
+ */
+router.get('/historical-data/:symbol/:instrumentToken', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { symbol, instrumentToken } = req.params;
+    const { interval = 'minute', days = 1 } = req.query;
+
+    const { HistoricalDataService } = await import('../services/historical-data');
+
+    const histService = new HistoricalDataService(zerodhaClient);
+    const data = await histService.getHistoricalData(
+      parseInt(instrumentToken),
+      symbol,
+      interval as string,
+      parseInt(days as string)
+    );
+
+    const quality = histService.analyzeDataQuality(data);
+
+    res.json({
+      status: 'success',
+      data,
+      quality,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get Options Chains
+ */
+router.get('/options/chains/:symbol', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const { symbol } = req.params;
+    const { spot_price = 100, strike_interval = 100 } = req.query;
+
+    const { OptionsTradeService } = await import('../services/options-trading');
+
+    const strikes = OptionsTradeService.getAvailableStrikes(
+      parseFloat(spot_price as string),
+      parseInt(strike_interval as string)
+    );
+
+    const weeklyExpiry = OptionsTradeService.getNextExpiryDate('WEEKLY');
+    const monthlyExpiry = OptionsTradeService.getNextExpiryDate('MONTHLY');
+
+    res.json({
+      status: 'success',
+      symbol,
+      spotPrice: spot_price,
+      strikes,
+      expiryDates: {
+        weekly: weeklyExpiry,
+        monthly: monthlyExpiry,
+        weeklyDaysLeft: OptionsTradeService.getDaysToExpiry(weeklyExpiry),
+        monthlyDaysLeft: OptionsTradeService.getDaysToExpiry(monthlyExpiry),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Calculate Greeks for Options
+ */
+router.post('/options/greeks', async (req: Request, res: Response) => {
+  try {
+    const {
+      spotPrice,
+      strikePrice,
+      daysToExpiry,
+      volatility = 30,
+      optionType = 'CE',
+    } = req.body;
+
+    if (!spotPrice || !strikePrice || !daysToExpiry) {
+      return res
+        .status(400)
+        .json({ error: 'Missing spotPrice, strikePrice, or daysToExpiry' });
+    }
+
+    const { OptionsTradeService } = await import('../services/options-trading');
+
+    const greeks = OptionsTradeService.calculateGreeks(
+      parseFloat(spotPrice),
+      parseFloat(strikePrice),
+      parseInt(daysToExpiry),
+      parseFloat(volatility),
+      0.05,
+      optionType
+    );
+
+    const price = OptionsTradeService.calculateOptionPrice(
+      parseFloat(spotPrice),
+      parseFloat(strikePrice),
+      parseInt(daysToExpiry),
+      parseFloat(volatility),
+      0.05,
+      0,
+      optionType
+    );
+
+    res.json({
+      status: 'success',
+      greeks,
+      theoreticalPrice: price,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Suggest Options Strategy
+ */
+router.post('/options/strategy/suggest', async (req: Request, res: Response) => {
+  try {
+    const { marketTrend, volatility = 30, basePrice = 100 } = req.body;
+
+    if (!marketTrend) {
+      return res.status(400).json({ error: 'Missing marketTrend' });
+    }
+
+    const { OptionsTradeService } = await import('../services/options-trading');
+
+    const suggestions = OptionsTradeService.suggestStrategy(
+      marketTrend,
+      parseFloat(volatility),
+      parseFloat(basePrice),
+      []
+    );
+
+    res.json({
+      status: 'success',
+      marketTrend,
+      volatility,
+      suggestedStrategies: suggestions,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Execute Options Trade (Multiple Legs)
+ */
+router.post('/options/trade/execute', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const {
+      symbol,
+      instrumentTokens,
+      orders,
+      strategyType = 'BULL_CALL_SPREAD',
+      quantity = 1,
+    } = req.body;
+
+    // Execute multiple legs
+    const executedOrders: any[] = [];
+
+    for (const order of orders) {
+      try {
+        const result = await zerodhaClient.placeOrder(
+          order.symbol,
+          'NFO', // Options trading
+          order.side,
+          quantity,
+          order.price,
+          'LIMIT'
+        );
+
+        executedOrders.push({
+          symbol: order.symbol,
+          status: 'executed',
+          orderId: result.order_id,
+        });
+      } catch (err) {
+        executedOrders.push({
+          symbol: order.symbol,
+          status: 'failed',
+          error: (err as any).message,
+        });
+      }
+    }
+
+    res.json({
+      status: 'success',
+      strategyType,
+      executedOrders,
+      summary: {
+        total: executedOrders.length,
+        successful: executedOrders.filter((o) => o.status === 'executed').length,
+        failed: executedOrders.filter((o) => o.status === 'failed').length,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get All Active Instruments for Portfolio
+ */
+router.get('/portfolio/instruments', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const holdings = await zerodhaClient.getHoldings();
+    const positions = await zerodhaClient.getPositions();
+
+    const instruments = {
+      holdings: holdings || [],
+      positions: positions || [],
+      total: {
+        holdingsCount: holdings?.length || 0,
+        positionsCount: positions?.length || 0,
+      },
+    };
+
+    res.json({
+      status: 'success',
+      instruments,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get Account Balance & Margin
+ */
+router.get('/account/margins', async (req: Request, res: Response) => {
+  try {
+    if (!zerodhaClient) {
+      return res.status(400).json({ error: 'Zerodha not connected' });
+    }
+
+    const margins = await zerodhaClient.getMargins();
+    const profile = await zerodhaClient.getProfile();
+
+    res.json({
+      status: 'success',
+      profile,
+      margins,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

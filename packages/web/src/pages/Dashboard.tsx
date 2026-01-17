@@ -30,27 +30,3 @@ export default function Dashboard() {
     </div>
   );
 }
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900">Portfolio Value</h3>
-            <p className="mt-2 text-3xl font-bold text-green-600">$10,000</p>
-            <p className="mt-1 text-sm text-gray-500">+2.5% today</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900">Available Cash</h3>
-            <p className="mt-2 text-3xl font-bold text-blue-600">$5,000</p>
-            <p className="mt-1 text-sm text-gray-500">50% of portfolio</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900">Holdings</h3>
-            <p className="mt-2 text-3xl font-bold text-purple-600">5</p>
-            <p className="mt-1 text-sm text-gray-500">Different stocks</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
