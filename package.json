@@ -1,0 +1,27 @@
+{
+  "name": "trading-app",
+  "version": "1.0.0",
+  "description": "Full-stack trading application with web and mobile clients",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "install-all": "yarn install",
+    "dev": "yarn workspaces run dev",
+    "build": "yarn workspaces run build",
+    "test": "yarn workspaces run test",
+    "clean": "yarn workspaces run clean",
+    "lint": "yarn workspaces run lint",
+    "server": "yarn workspace @trading-app/server dev",
+    "web": "yarn workspace @trading-app/web dev",
+    "mobile": "yarn workspace @trading-app/mobile start"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=3.0.0"
+  }
+}
