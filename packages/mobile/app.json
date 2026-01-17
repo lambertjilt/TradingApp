@@ -1,0 +1,26 @@
+{
+  "name": "trading-app-mobile",
+  "displayName": "Trading App",
+  "expo": {
+    "name": "Trading App",
+    "slug": "trading-app",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "ios": {
+      "supportsTabletMode": true
+    }
+  }
+}
